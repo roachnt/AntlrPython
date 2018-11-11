@@ -32,6 +32,10 @@ run with "driver" to generate output file;
 
    `alias pythongsa='java -jar /usr/local/bin/PythonGSA.jar'`
 
+4. Execute the tool by running the following:
+
+   `$ pythongsa input.py`
+
 The instrumented file "out.py" will appear at the "AntlrPython" direntory
 
 You also need to create "phi.py" for your Python code to be profile since "out.py" import phi
