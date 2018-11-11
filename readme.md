@@ -28,7 +28,7 @@ run with "driver" to generate output file;
 
 1. Add antlr jar file to /usr/local/lib directory
 2. Move PythonGSA.jar to /usr/local/bin directory
-3. Add the following line to your .bashrc: alias pythongsa='java -jar /usr/local/bin/PythonGSA.jar'
+3. Add the following line to your .bashrc: \$ alias pythongsa='java -jar /usr/local/bin/PythonGSA.jar'
 
 The instrumented file "out.py" will appear at the "AntlrPython" direntory
 
