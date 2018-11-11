@@ -20,7 +20,7 @@ public class Driver {
         if (inputFile != null) {
             is = new FileInputStream(inputFile);
         }
-        //CharStream stream = new CharStream(is);
+        // CharStream stream = new CharStream(is);
         PythonLexer lexer = new PythonLexer(CharStreams.fromStream(is, StandardCharsets.UTF_8));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         PythonParser parser = new PythonParser(tokens);
@@ -31,9 +31,9 @@ public class Driver {
 
         HashMap<String, ArrayList<String>> globalIdsMap = converter.getGlobalIdsMap();
         for (String id : globalIdsMap.keySet()) {
-            System.out.println(id);
-            for(String idSSA : globalIdsMap.get(id)) {
-                System.out.println(idSSA);
+            System.out.println("ID: " + id);
+            for (String idSSA : globalIdsMap.get(id)) {
+                System.out.println("ID_SSA: " + idSSA);
             }
         }
         ArrayList<String> importedNames = converter.getImportedNames();
@@ -45,14 +45,15 @@ public class Driver {
         }
 
         System.out.println("--------------Second walker---------------");
-        Rewriter rewriter = new Rewriter(converter.functionNames, converter.idMap, converter.comp_forMap, globalIdsMap, parser);
+        Rewriter rewriter = new Rewriter(converter.functionNames, converter.idMap, converter.comp_forMap, globalIdsMap,
+                parser);
         walker.walk(rewriter, tree);
-//
-//        System.out.println("--------------Causal Map---------------");
-//        HashMap<String, ArrayList<String>> causalMap = rewriter.getCausalMap();
-//        for (String key :causalMap.keySet()) {
-//            System.out.println("id:" + key + " parent:" + causalMap.get(key));
-//        }
+        //
+        // System.out.println("--------------Causal Map---------------");
+        // HashMap<String, ArrayList<String>> causalMap = rewriter.getCausalMap();
+        // for (String key :causalMap.keySet()) {
+        // System.out.println("id:" + key + " parent:" + causalMap.get(key));
+        // }
 
     }
 }

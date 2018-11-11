@@ -4,7 +4,6 @@ class Phi:
         self.set_once = False
         self.set_twice = False
 
-
     def set(self):
         if self.set_once:
             self.set_twice = True
@@ -23,12 +22,12 @@ class Phi:
         else:
             return iter_obj
 
+    # NO PREDICATE, CHECK THIS OUT
     def phiExit(self, init_obj, final_obj):
         if self.set_once:
             return final_obj
         else:
             return init_obj
-
 
 
 def phiIf(phiPreds, phiNames):
@@ -37,5 +36,3 @@ def phiIf(phiPreds, phiNames):
     else:
 
         return phiNames[phiPreds.index(True)]
-
-

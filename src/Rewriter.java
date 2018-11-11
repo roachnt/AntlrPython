@@ -5,7 +5,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
@@ -16,15 +15,17 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Rewriter extends PythonBaseListener{
+public class Rewriter extends PythonBaseListener {
     class Pair {
         int start;
         int end;
+
         public Pair(int start, int end) {
             this.start = start;
             this.end = end;
         }
     }
+
     ParseTreeProperty<HashMap<String, ArrayList<String>>> idMap;
     ParseTreeProperty<Set<String>> loopRulePredNames;
     public ParseTreeProperty<ArrayList<ArrayList<String>>> comp_forMap;
@@ -44,11 +45,10 @@ public class Rewriter extends PythonBaseListener{
     int tabCount;
     ArrayList<String> predHolder;
     public String[] tokenTable = new String[100];
-    public Rewriter(ArrayList<String> functionNames,
-                    ParseTreeProperty<HashMap<String, ArrayList<String>>> idMap,
-                    ParseTreeProperty<ArrayList<ArrayList<String>>> comp_forMap,
-                    HashMap<String, ArrayList<String>> globalIdsMap,
-                    PythonParser parser) {
+
+    public Rewriter(ArrayList<String> functionNames, ParseTreeProperty<HashMap<String, ArrayList<String>>> idMap,
+            ParseTreeProperty<ArrayList<ArrayList<String>>> comp_forMap,
+            HashMap<String, ArrayList<String>> globalIdsMap, PythonParser parser) {
         this.ifPredNameMap = new HashMap<>();
         this.addedPhiNames = new ArrayList<>();
         this.functionNames = functionNames;
@@ -70,8 +70,7 @@ public class Rewriter extends PythonBaseListener{
         try {
             fstream = new FileWriter("out.py", false);
             out = new BufferedWriter(fstream);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Error: " + e.getMessage());
         }
         try {
@@ -83,46 +82,56 @@ public class Rewriter extends PythonBaseListener{
                 String[] strs = line.split("=");
                 tokenTable[Integer.valueOf(strs[1])] = strs[0];
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Error: " + e.getMessage());
         }
     }
+
     public HashMap<String, ArrayList<String>> getCausalMap() {
         return this.causalMap;
     }
+
     private boolean isSpecial(String id) {
         return id.matches("__[A-Za-z_][A-Za-z_0-9]*__") || id.equals("self") || id.equals("cls") || id.equals("_");
     }
+
     private void setNodeComp_forLists(ParseTree node, ArrayList<ArrayList<String>> nodeComp_forLists) {
         comp_forMap.put(node, nodeComp_forLists);
     }
+
     private ArrayList<ArrayList<String>> getNodeComp_forLists(ParseTree node) {
         return comp_forMap.get(node);
     }
+
     public HashMap<String, Integer> getTempSSAPointerMap(ParseTree node) {
         return tempSSAPointerMap.get(node);
     }
+
     public void setTempSSAPointerMap(ParseTree node, HashMap<String, Integer> map) {
         tempSSAPointerMap.put(node, map);
     }
+
     public ArrayList<Token> getRuleTokens(ParseTree node) {
         return ruleTokens.get(node);
     }
+
     public void setRuleTokens(ParseTree node, ArrayList<Token> tokens) {
         ruleTokens.put(node, tokens);
     }
+
     private void setNodeIdsMap(ParseTree node, HashMap<String, ArrayList<String>> nodeIds) {
         idMap.put(node, nodeIds);
     }
+
     private HashMap<String, ArrayList<String>> getNodeIdsMap(ParseTree node) {
         return idMap.get(node);
     }
 
-    //Sep 3 added: storing pred name map to while node
+    // Sep 3 added: storing pred name map to while node
     private void setLoopRulePredNameMap(ParseTree node, Set<String> set) {
         loopRulePredNames.put(node, set);
     }
+
     private Set<String> getLoopRulePredNameMap(ParseTree node) {
         return loopRulePredNames.get(node);
     }
@@ -130,10 +139,13 @@ public class Rewriter extends PythonBaseListener{
     public void enterSmall_stmt(PythonParser.Small_stmtContext ctx) {
         setRuleTokens(ctx, new ArrayList<>());
     }
+
     public void exitSmall_stmt(PythonParser.Small_stmtContext ctx) {
     }
+
     public void enterImport_stmt(PythonParser.Import_stmtContext ctx) {
     }
+
     public void exitImport_stmt(PythonParser.Import_stmtContext ctx) throws IOException {
         StringBuilder sb = new StringBuilder();
         ArrayList<Token> tokens = getRuleTokens(findFirstSmallStmtNode(ctx));
@@ -168,14 +180,16 @@ public class Rewriter extends PythonBaseListener{
         }
         out.write(sb.toString());
     }
+
     public void enterTestlist(PythonParser.TestlistContext ctx) {
         setRuleTokens(ctx, new ArrayList<>());
     }
 
     public void exitTestlist(PythonParser.TestlistContext ctx) throws IOException {
-        if (ctx.getParent() instanceof  PythonParser.For_stmtContext) {
+        if (ctx.getParent() instanceof PythonParser.For_stmtContext) {
             HashMap<String, Integer> forNodePointerMap = getTempSSAPointerMap(ctx.getParent());
-            ArrayList<Token> exprlistTokens = getRuleTokens(((PythonParser.For_stmtContext) ctx.getParent()).exprlist());
+            ArrayList<Token> exprlistTokens = getRuleTokens(
+                    ((PythonParser.For_stmtContext) ctx.getParent()).exprlist());
             ArrayList<String> exprlistTokensAsString = new ArrayList<>();
             for (Token t : exprlistTokens) {
                 exprlistTokensAsString.add(t.getText());
@@ -191,22 +205,24 @@ public class Rewriter extends PythonBaseListener{
             String testList = "";
             ArrayList<Token> testListTokens = getRuleTokens(ctx);
             Set<String> loopPredNames = getLoopRulePredNameMap(ctx.getParent());
-            for (int i = 0; i< testListTokens.size(); i++) {
-                if (tokenTable[testListTokens.get(i).getType()].equals("NAME") &&
-                        ((i == 0)|| (i > 0 && !tokenTable[testListTokens.get(i - 1).getType()].equals("DOT")))) {
+            for (int i = 0; i < testListTokens.size(); i++) {
+                if (tokenTable[testListTokens.get(i).getType()].equals("NAME")
+                        && ((i == 0) || (i > 0 && !tokenTable[testListTokens.get(i - 1).getType()].equals("DOT")))) {
                     String id = testListTokens.get(i).getText();
                     if (globalIdsMap.containsKey(id)) {
                         String ssa;
-                        if (firstSuiteParent == null && exprlistTokensAsString.contains(testListTokens.get(i).getText())) {
+                        if (firstSuiteParent == null
+                                && exprlistTokensAsString.contains(testListTokens.get(i).getText())) {
                             ssa = globalIdsMap.get(id).get(parentSuitePointerMap.get(id) - 1);
                         } else {
-                            //temp fix for key worded parameter!!!!
-                            if (i + 2 < testListTokens.size() && i - 1 >= 0 && testListTokens.get(i + 1).getText().equals("=")
+                            // temp fix for key worded parameter!!!!
+                            if (i + 2 < testListTokens.size() && i - 1 >= 0
+                                    && testListTokens.get(i + 1).getText().equals("=")
                                     && isBasicAtomType(testListTokens, i + 2)
-                                    && (testListTokens.get(i - 1).getText().equals(",") || testListTokens.get(i - 1).getText().equals("("))) {
+                                    && (testListTokens.get(i - 1).getText().equals(",")
+                                            || testListTokens.get(i - 1).getText().equals("("))) {
                                 ssa = testListTokens.get(i).getText();
                             } else {
-//
                                 ssa = globalIdsMap.get(id).get(parentSuitePointerMap.get(id));
                             }
                         }
@@ -225,7 +241,6 @@ public class Rewriter extends PythonBaseListener{
             out.write("\n");
         }
 
-
     }
 
     private void addLambdaRange(ArrayList<Token> tokens, int j, ArrayList<Pair> lambdaRanges) {
@@ -234,13 +249,14 @@ public class Rewriter extends PythonBaseListener{
         int rightIndicator = 0;
         while (right < tokens.size()) {
 
-
-            if (tokenTable[tokens.get(right).getType()].equals("OPEN_BRACE") || tokenTable[tokens.get(right).getType()].equals("OPEN_PAREN") ||
-                    tokenTable[tokens.get(right).getType()].equals("OPEN_BRACK")) {
+            if (tokenTable[tokens.get(right).getType()].equals("OPEN_BRACE")
+                    || tokenTable[tokens.get(right).getType()].equals("OPEN_PAREN")
+                    || tokenTable[tokens.get(right).getType()].equals("OPEN_BRACK")) {
                 rightIndicator--;
             }
-            if (tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACE") || tokenTable[tokens.get(right).getType()].equals("CLOSE_PAREN") ||
-                    tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACK")) {
+            if (tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACE")
+                    || tokenTable[tokens.get(right).getType()].equals("CLOSE_PAREN")
+                    || tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACK")) {
                 rightIndicator++;
             }
             if (rightIndicator == 1) {
@@ -252,19 +268,20 @@ public class Rewriter extends PythonBaseListener{
         lambdaRanges.add(new Pair(j, right));
     }
 
-
     private void addComp_forRange(ArrayList<Token> tokens, int j, ArrayList<Pair> comp_forRanges) {
         int left = j - 1;
         int right = j + 1;
         int leftIndicator = 0;
         int rightIndicator = 0;
         while (true) {
-            if (tokenTable[tokens.get(left).getType()].equals("OPEN_BRACE") || tokenTable[tokens.get(left).getType()].equals("OPEN_PAREN") ||
-                    tokenTable[tokens.get(left).getType()].equals("OPEN_BRACK")) {
+            if (tokenTable[tokens.get(left).getType()].equals("OPEN_BRACE")
+                    || tokenTable[tokens.get(left).getType()].equals("OPEN_PAREN")
+                    || tokenTable[tokens.get(left).getType()].equals("OPEN_BRACK")) {
                 leftIndicator--;
             }
-            if (tokenTable[tokens.get(left).getType()].equals("CLOSE_BRACE") || tokenTable[tokens.get(left).getType()].equals("CLOSE_PAREN") ||
-                    tokenTable[tokens.get(left).getType()].equals("CLOSE_BRACK")) {
+            if (tokenTable[tokens.get(left).getType()].equals("CLOSE_BRACE")
+                    || tokenTable[tokens.get(left).getType()].equals("CLOSE_PAREN")
+                    || tokenTable[tokens.get(left).getType()].equals("CLOSE_BRACK")) {
                 leftIndicator++;
             }
 
@@ -275,12 +292,14 @@ public class Rewriter extends PythonBaseListener{
             left--;
         }
         while (true) {
-            if (tokenTable[tokens.get(right).getType()].equals("OPEN_BRACE") || tokenTable[tokens.get(right).getType()].equals("OPEN_PAREN") ||
-                    tokenTable[tokens.get(right).getType()].equals("OPEN_BRACK")) {
+            if (tokenTable[tokens.get(right).getType()].equals("OPEN_BRACE")
+                    || tokenTable[tokens.get(right).getType()].equals("OPEN_PAREN")
+                    || tokenTable[tokens.get(right).getType()].equals("OPEN_BRACK")) {
                 rightIndicator--;
             }
-            if (tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACE") || tokenTable[tokens.get(right).getType()].equals("CLOSE_PAREN") ||
-                    tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACK")) {
+            if (tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACE")
+                    || tokenTable[tokens.get(right).getType()].equals("CLOSE_PAREN")
+                    || tokenTable[tokens.get(right).getType()].equals("CLOSE_BRACK")) {
                 rightIndicator++;
             }
             if (rightIndicator == 1) {
@@ -310,16 +329,17 @@ public class Rewriter extends PythonBaseListener{
         return -1;
     }
 
-    private ArrayList<String> getAllQualifiedComp_fors(int j, ArrayList<Pair> comp_forRanges, ArrayList<ArrayList<String>> nodeComp_forLists) {
+    private ArrayList<String> getAllQualifiedComp_fors(int j, ArrayList<Pair> comp_forRanges,
+            ArrayList<ArrayList<String>> nodeComp_forLists) {
         ArrayList<String> allQualifiedComp_fors = new ArrayList<>();
         for (int i = 0; i < comp_forRanges.size(); i++) {
-            if (i > 0 && comp_forRanges.get(i).start >= comp_forRanges.get(i - 1).start &&
-                    comp_forRanges.get(i).end <= comp_forRanges.get(i - 1).end) {
+            if (i > 0 && comp_forRanges.get(i).start >= comp_forRanges.get(i - 1).start
+                    && comp_forRanges.get(i).end <= comp_forRanges.get(i - 1).end) {
                 continue;
             }
             if (j >= comp_forRanges.get(i).start && j <= comp_forRanges.get(i).end) {
-                if (i > 0 && comp_forRanges.get(i).start == comp_forRanges.get(i - 1).start &&
-                        comp_forRanges.get(i).end == comp_forRanges.get(i - 1).end) {
+                if (i > 0 && comp_forRanges.get(i).start == comp_forRanges.get(i - 1).start
+                        && comp_forRanges.get(i).end == comp_forRanges.get(i - 1).end) {
                     continue;
                 }
 
@@ -328,8 +348,10 @@ public class Rewriter extends PythonBaseListener{
         }
         return allQualifiedComp_fors;
     }
+
     public void enterExpr_stmt(PythonParser.Expr_stmtContext ctx) throws IOException {
     }
+
     private boolean isInBrack(int j, ArrayList<Pair> brackRangeList) {
         for (Pair brackRange : brackRangeList) {
             if (j >= brackRange.start && j <= brackRange.end) {
@@ -340,7 +362,7 @@ public class Rewriter extends PythonBaseListener{
     }
 
     public void exitExpr_stmt(PythonParser.Expr_stmtContext ctx) throws IOException {
-        //get temp pointer map from parent suite or main flow
+        // get temp pointer map from parent suite or main flow
         ArrayList<String> causalList = new ArrayList<>();
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
         HashMap<String, Integer> firstSuiteParentPointerMap;
@@ -359,23 +381,24 @@ public class Rewriter extends PythonBaseListener{
             }
         }
 
-        //augassign
+        // augassign
         String output = "";
         if (ctx.augassign() != null) {
-            //this if may not necessary
+            // this if may not necessary
             ArrayList<Token> tokens = getRuleTokens(ctx.testlist_star_expr(0));
 
             String newRightPart = "";
             for (int i = 0; i < tokens.size(); i++) {
-                if (tokenTable[tokens.get(i).getType()].equals("NAME") && (i == 0 || !tokenTable[tokens.get(i - 1).getType()].equals("DOT"))) {
+                if (tokenTable[tokens.get(i).getType()].equals("NAME")
+                        && (i == 0 || !tokenTable[tokens.get(i - 1).getType()].equals("DOT"))) {
                     String name = tokens.get(i).getText();
                     if (globalIdsMap.containsKey(name)) {
                         String idInSSA;
                         if (firstSuiteParentPointerMap.get(name) == -1 && functionNames.contains(name)) {
                             idInSSA = tokens.get(i).getText();
                         } else {
-                            if (i + 1 < tokens.size() && tokens.get(i + 1).getText().equals("=") &&
-                                    firstSuiteParentPointerMap.get(name) == -1 ) {
+                            if (i + 1 < tokens.size() && tokens.get(i + 1).getText().equals("=")
+                                    && firstSuiteParentPointerMap.get(name) == -1) {
                                 idInSSA = tokens.get(i).getText();
                             } else {
 
@@ -399,15 +422,16 @@ public class Rewriter extends PythonBaseListener{
             String suboutput = "";
             tokens = getRuleTokens(ctx.testlist());
             for (int i = 0; i < tokens.size(); i++) {
-                if (tokenTable[tokens.get(i).getType()].equals("NAME") && (i == 0 || !tokenTable[tokens.get(i - 1).getType()].equals("DOT"))) {
+                if (tokenTable[tokens.get(i).getType()].equals("NAME")
+                        && (i == 0 || !tokenTable[tokens.get(i - 1).getType()].equals("DOT"))) {
                     String name = tokens.get(i).getText();
                     if (globalIdsMap.containsKey(name)) {
                         String idInSSA;
                         if (firstSuiteParentPointerMap.get(name) == -1 && functionNames.contains(name)) {
                             idInSSA = tokens.get(i).getText();
                         } else {
-                            if (i + 1 < tokens.size() && tokens.get(i + 1).getText().equals("=") &&
-                                    firstSuiteParentPointerMap.get(name) == -1 ) {
+                            if (i + 1 < tokens.size() && tokens.get(i + 1).getText().equals("=")
+                                    && firstSuiteParentPointerMap.get(name) == -1) {
                                 idInSSA = tokens.get(i).getText();
                             } else {
 
@@ -440,14 +464,13 @@ public class Rewriter extends PythonBaseListener{
             output += suboutput;
             String newLeftPart = ctx.testlist_star_expr(0).getText();
 
-            //temp fix
-            if (newLeftPart.matches("[a-zA-Z_][a-zA-Z0-9_]*") &&
-                    globalIdsMap.containsKey(newLeftPart)) {
+            // temp fix
+            if (newLeftPart.matches("[a-zA-Z_][a-zA-Z0-9_]*") && globalIdsMap.containsKey(newLeftPart)) {
                 String idSSA = newLeftPart;
                 newLeftPart = globalIdsMap.get(newLeftPart).get(ssaPointerMap.get(newLeftPart) + 1);
                 causalMap.put(newLeftPart, causalList);
                 ssaPointerMap.put(idSSA, ssaPointerMap.get(idSSA) + 1);
-                //no + 1
+                // no + 1
                 firstSuiteParentPointerMap.put(idSSA, ssaPointerMap.get(idSSA));
             } else {
                 newLeftPart = newRightPart;
@@ -458,12 +481,12 @@ public class Rewriter extends PythonBaseListener{
             out.write(output);
         } else {
 
-            //normal assign
+            // normal assign
             if (ctx.testlist_star_expr().size() > 1) {
                 List<PythonParser.Testlist_star_exprContext> testListStarExprContexts = ctx.testlist_star_expr();
                 for (int i = testListStarExprContexts.size() - 1; i >= 0; i--) {
                     ArrayList<Token> tokens = getRuleTokens(testListStarExprContexts.get(i));
-                    //identify []
+                    // identify []
                     ArrayList<Pair> brackRangeList = new ArrayList<>();
 
                     if (i != testListStarExprContexts.size() - 1) {
@@ -489,25 +512,24 @@ public class Rewriter extends PythonBaseListener{
                     }
                     String suboutput = "";
 
-
                     ArrayList<Pair> comp_forRanges = new ArrayList<>();
                     for (int j = 0; j < tokens.size(); j++) {
                         if (tokenTable[tokens.get(j).getType()].equals("FOR")) {
-                            //find parentheses surround for
-                            addComp_forRange(tokens ,j, comp_forRanges);
+                            // find parentheses surround for
+                            addComp_forRange(tokens, j, comp_forRanges);
                         }
                     }
 
                     ArrayList<Pair> lambdaRanges = new ArrayList<>();
                     for (int j = 0; j < tokens.size(); j++) {
                         if (tokenTable[tokens.get(j).getType()].equals("LAMBDA")) {
-                            //find parentheses surround for
-                            addLambdaRange(tokens ,j, lambdaRanges);
+                            // find parentheses surround for
+                            addLambdaRange(tokens, j, lambdaRanges);
                         }
                     }
                     ArrayList<ArrayList<String>> nodeLambdaNames = new ArrayList<>();
                     for (int j = 0; j < tokens.size(); j++) {
-                        //handling lambda in assign
+                        // handling lambda in assign
                         if (tokenTable[tokens.get(j).getType()].equals("LAMBDA")) {
                             ArrayList<String> namesAfterLambda = new ArrayList<>();
                             suboutput += " ";
@@ -516,7 +538,7 @@ public class Rewriter extends PythonBaseListener{
                                 if (tokenTable[tokens.get(j + k).getType()].equals("NAME")) {
                                     String id = tokens.get(j + k).getText();
                                     String ssa = globalIdsMap.get(id).get(ssaPointerMap.get(id) + 1);
-                                    //should not contain "?"
+                                    // should not contain "?"
                                     ssaPointerMap.put(id, ssaPointerMap.get(id) + 1);
                                     firstSuiteParentPointerMap.put(id, ssaPointerMap.get(id));
                                     namesAfterLambda.add(ssa);
@@ -536,10 +558,12 @@ public class Rewriter extends PythonBaseListener{
                             continue;
                         }
                         boolean isLambda = false;
-                        if (tokenTable[tokens.get(j).getType()].equals("NAME") && indexOfLambdaList(j, lambdaRanges) > -1) {
+                        if (tokenTable[tokens.get(j).getType()].equals("NAME")
+                                && indexOfLambdaList(j, lambdaRanges) > -1) {
                             String id = tokens.get(j).getText();
 
-                            ArrayList<String> namesAfterLambda = nodeLambdaNames.get(indexOfLambdaList(j, lambdaRanges));
+                            ArrayList<String> namesAfterLambda = nodeLambdaNames
+                                    .get(indexOfLambdaList(j, lambdaRanges));
 
                             for (String name : namesAfterLambda) {
 
@@ -553,13 +577,14 @@ public class Rewriter extends PythonBaseListener{
                             continue;
                         }
 
-
-                        if (!isLambda && tokenTable[tokens.get(j).getType()].equals("NAME") && (j == 0 || !tokenTable[tokens.get(j - 1).getType()].equals("DOT"))) {
+                        if (!isLambda && tokenTable[tokens.get(j).getType()].equals("NAME")
+                                && (j == 0 || !tokenTable[tokens.get(j - 1).getType()].equals("DOT"))) {
                             String id = tokens.get(j).getText();
-                            //names in comp_for
+                            // names in comp_for
                             boolean isComp_forName = false;
                             if (indexOfComp_forList(j, comp_forRanges) != -1) {
-                                ArrayList<String> comp_forList = getAllQualifiedComp_fors(j, comp_forRanges, nodeComp_forLists);
+                                ArrayList<String> comp_forList = getAllQualifiedComp_fors(j, comp_forRanges,
+                                        nodeComp_forLists);
                                 for (String ssa : comp_forList) {
                                     if (tokens.get(j).getText().equals(ssa.substring(0, ssa.lastIndexOf('_')))) {
                                         isComp_forName = true;
@@ -574,26 +599,26 @@ public class Rewriter extends PythonBaseListener{
                                 continue;
                             }
 
-                            //not in comp_for range and lambda range
+                            // not in comp_for range and lambda range
                             if (globalIdsMap.containsKey(id)) {
 
-                                //temp fix for key-worded parameter!!!!
+                                // temp fix for key-worded parameter!!!!
                                 if (j + 2 < tokens.size() && j - 1 >= 0 && tokens.get(j + 1).getText().equals("=")
-                                        && isBasicAtomType(tokens, j + 2)
-                                        && (tokens.get(j - 1).getText().equals(",") || tokens.get(j - 1).getText().equals("("))) {
+                                        && isBasicAtomType(tokens, j + 2) && (tokens.get(j - 1).getText().equals(",")
+                                                || tokens.get(j - 1).getText().equals("("))) {
                                     suboutput += id;
                                     continue;
                                 }
-                                //right of assign
+                                // right of assign
                                 if (i == testListStarExprContexts.size() - 1) {
                                     String ssa;
-                                    //funtion name in right side
-                                    if (firstSuiteParentPointerMap.get(id) == -1 &&
-                                            (functionNames.contains(id) || tokens.get(j + 1).getText().equals("("))) {
+                                    // funtion name in right side
+                                    if (firstSuiteParentPointerMap.get(id) == -1 && (functionNames.contains(id)
+                                            || tokens.get(j + 1).getText().equals("("))) {
                                         ssa = tokens.get(j).getText();
                                     } else {
-                                        if (j + 1 < tokens.size() && tokens.get(j + 1).getText().equals("=") &&
-                                                firstSuiteParentPointerMap.get(id) == -1 ) {
+                                        if (j + 1 < tokens.size() && tokens.get(j + 1).getText().equals("=")
+                                                && firstSuiteParentPointerMap.get(id) == -1) {
                                             ssa = tokens.get(j).getText();
                                         } else {
                                             System.out.println(ctx.getText());
@@ -608,12 +633,12 @@ public class Rewriter extends PythonBaseListener{
                                     causalList.add(ssa);
                                     suboutput += ssa;
                                     continue;
-                                } else { //left of assign : name + 1
+                                } else { // left of assign : name + 1
                                     String ssa;
                                     boolean isDef = false;
-                                    if ((j + 1 < tokens.size() && tokens.get(j + 1).getText().equals(".")) ||
-                                            (j + 1 < tokens.size() && tokens.get(j + 1).getText().equals("[")) ||
-                                            (isInBrack(j, brackRangeList))) {
+                                    if ((j + 1 < tokens.size() && tokens.get(j + 1).getText().equals("."))
+                                            || (j + 1 < tokens.size() && tokens.get(j + 1).getText().equals("["))
+                                            || (isInBrack(j, brackRangeList))) {
 
                                         ssa = globalIdsMap.get(id).get(firstSuiteParentPointerMap.get(id));
                                     } else {
@@ -628,7 +653,7 @@ public class Rewriter extends PythonBaseListener{
                                     if (isDef) {
                                         causalMap.put(ssa, causalList);
                                         ssaPointerMap.put(id, ssaPointerMap.get(id) + 1);
-                                        //no + 1
+                                        // no + 1
                                         firstSuiteParentPointerMap.put(id, ssaPointerMap.get(id));
                                     }
                                     continue;
@@ -681,23 +706,25 @@ public class Rewriter extends PythonBaseListener{
                     output = suboutput + ("=" + output);
                 }
                 output = output.substring(0, output.length() - 1);
-            } else { //no assign, normal expr
+            } else { // no assign, normal expr
                 ArrayList<Token> tokens = getRuleTokens(ctx.testlist_star_expr().get(0));
                 ArrayList<Pair> comp_forRanges = new ArrayList<>();
                 for (int i = 0; i < tokens.size(); i++) {
                     if (tokenTable[tokens.get(i).getType()].equals("FOR")) {
-                        //find parentheses surround for
-                        addComp_forRange(tokens ,i, comp_forRanges);
+                        // find parentheses surround for
+                        addComp_forRange(tokens, i, comp_forRanges);
                     }
                 }
-                for (int i = 0; i < tokens.size();i++) {
-                    if (tokenTable[tokens.get(i).getType()].equals("NAME") &&
-                            ((i == 0)|| (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT"))) && !isSpecial(tokens.get(i).getText())) {
+                for (int i = 0; i < tokens.size(); i++) {
+                    if (tokenTable[tokens.get(i).getType()].equals("NAME")
+                            && ((i == 0) || (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))
+                            && !isSpecial(tokens.get(i).getText())) {
                         String id = tokens.get(i).getText();
-                        //names in comp_for
+                        // names in comp_for
                         boolean isComp_forName = false;
                         if (indexOfComp_forList(i, comp_forRanges) != -1) {
-                            ArrayList<String> comp_forList = getAllQualifiedComp_fors(i, comp_forRanges, nodeComp_forLists);
+                            ArrayList<String> comp_forList = getAllQualifiedComp_fors(i, comp_forRanges,
+                                    nodeComp_forLists);
                             for (String ssa : comp_forList) {
                                 if (tokens.get(i).getText().equals(ssa.substring(0, ssa.lastIndexOf('_')))) {
                                     isComp_forName = true;
@@ -710,11 +737,11 @@ public class Rewriter extends PythonBaseListener{
                             continue;
                         }
                         if (globalIdsMap.containsKey(id)) {
-                            //temp fix for key worded parameter!!!!
+                            // temp fix for key worded parameter!!!!
 
                             if (i + 2 < tokens.size() && i - 1 >= 0 && tokens.get(i + 1).getText().equals("=")
-                                    && isBasicAtomType(tokens, i + 2)
-                                    && (tokens.get(i - 1).getText().equals(",") || tokens.get(i - 1).getText().equals("("))) {
+                                    && isBasicAtomType(tokens, i + 2) && (tokens.get(i - 1).getText().equals(",")
+                                            || tokens.get(i - 1).getText().equals("("))) {
                                 output += id;
                                 continue;
                             }
@@ -723,8 +750,8 @@ public class Rewriter extends PythonBaseListener{
                                 idSSA = tokens.get(i).getText();
                             } else {
 
-                                if (i + 1 < tokens.size() && tokens.get(i + 1).getText().equals("=") &&
-                                        firstSuiteParentPointerMap.get(id) == -1 ) {
+                                if (i + 1 < tokens.size() && tokens.get(i + 1).getText().equals("=")
+                                        && firstSuiteParentPointerMap.get(id) == -1) {
                                     idSSA = tokens.get(i).getText();
                                 } else {
                                     idSSA = globalIdsMap.get(id).get(firstSuiteParentPointerMap.get(id));
@@ -732,7 +759,7 @@ public class Rewriter extends PythonBaseListener{
                             }
 
                             if (idSSA.contains("?")) {
-                                idSSA= idSSA.substring(0, idSSA.indexOf('?'));
+                                idSSA = idSSA.substring(0, idSSA.indexOf('?'));
                             }
                             output += idSSA;
                             continue;
@@ -776,9 +803,10 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private boolean isBasicAtomType(ArrayList<Token> tokens, int i) {
-         String atom = tokenTable[tokens.get(i).getType()];
-         return atom.equals("NAME") || atom.equals("NUMBER") || atom.equals("STRING+") || tokens.get(i).getText().equals("None")
-                 || tokens.get(i).getText().equals("...") || tokens.get(i).getText().equals("True") || tokens.get(i).getText().equals("False");
+        String atom = tokenTable[tokens.get(i).getType()];
+        return atom.equals("NAME") || atom.equals("NUMBER") || atom.equals("STRING+")
+                || tokens.get(i).getText().equals("None") || tokens.get(i).getText().equals("...")
+                || tokens.get(i).getText().equals("True") || tokens.get(i).getText().equals("False");
     }
 
     public void enterTestlist_star_expr(PythonParser.Testlist_star_exprContext ctx) {
@@ -788,6 +816,7 @@ public class Rewriter extends PythonBaseListener{
     public void enterParameters(PythonParser.ParametersContext ctx) throws IOException {
         setRuleTokens(ctx, new ArrayList<>());
     }
+
     public void exitParameters(PythonParser.ParametersContext ctx) throws IOException {
         HashMap<String, Integer> fundefPointerMap = getTempSSAPointerMap(ctx.getParent());
         String output = "";
@@ -798,16 +827,16 @@ public class Rewriter extends PythonBaseListener{
         }
         Set<String> pointersTobeUpdate = new HashSet<>();
         for (int i = 0; i < tokens.size(); i++) {
-            System.out.println(tokens.get(i).getText() + " type is " + tokenTable[tokens.get(i).getType()] + " " +
-                    globalIdsMap.containsKey(tokens.get(i).getText()));
+            System.out.println(tokens.get(i).getText() + " type is " + tokenTable[tokens.get(i).getType()] + " "
+                    + globalIdsMap.containsKey(tokens.get(i).getText()));
             if (tokenTable[tokens.get(i).getType()].equals("NAME") && !tokens.get(i - 1).getText().equals(".")) {
-                //possibly defs
+                // possibly defs
                 if (tokens.get(i - 1).getText().equals(",") || tokens.get(i - 1).getText().equals("(")
                         || tokens.get(i - 1).getText().contains("*")) {
                     String id = tokens.get(i).getText();
 
                     if (globalIdsMap.containsKey(id)) {
-                        //output += (globalIdsMap.get(id).get(ssaPointerMap.get(id) + 1));
+                        // output += (globalIdsMap.get(id).get(ssaPointerMap.get(id) + 1));
                         output += tokens.get(i).getText();
 
                         String newId = globalIdsMap.get(id).get(ssaPointerMap.get(id) + 1);
@@ -816,7 +845,7 @@ public class Rewriter extends PythonBaseListener{
                         continue;
                     }
                 } else {
-                    //possibly uses
+                    // possibly uses
                     String id = tokens.get(i).getText();
 
                     if (globalIdsMap.containsKey(id)) {
@@ -828,9 +857,9 @@ public class Rewriter extends PythonBaseListener{
             }
             output += tokens.get(i).getText();
         }
-        //update pointer
+        // update pointer
         for (String id : pointersTobeUpdate) {
-            ssaPointerMap.put(id,ssaPointerMap.get(id) + 1 );
+            ssaPointerMap.put(id, ssaPointerMap.get(id) + 1);
             fundefPointerMap.put(id, ssaPointerMap.get(id));
         }
         output += ":";
@@ -843,7 +872,8 @@ public class Rewriter extends PythonBaseListener{
         tabCount--;
 
     }
-    //need to be revised
+
+    // need to be revised
     public void enterDecorator(PythonParser.DecoratorContext ctx) throws IOException {
         writeTabs();
         out.write("@" + ctx.dotted_name().getText());
@@ -851,8 +881,8 @@ public class Rewriter extends PythonBaseListener{
     }
 
     public void enterFuncdef(PythonParser.FuncdefContext ctx) throws IOException {
-        if (ctx.getParent() instanceof  PythonParser.DecoratedContext &&
-                ((PythonParser.DecoratedContext) ctx.getParent()).decorators() != null) {
+        if (ctx.getParent() instanceof PythonParser.DecoratedContext
+                && ((PythonParser.DecoratedContext) ctx.getParent()).decorators() != null) {
             writeTabs();
         }
 
@@ -871,6 +901,7 @@ public class Rewriter extends PythonBaseListener{
         output += (ctx.getChild(1));
         out.write(output);
     }
+
     public void exitFuncdef(PythonParser.FuncdefContext ctx) throws IOException {
         HashMap<String, Integer> funcNodePointerMap = getTempSSAPointerMap(ctx);
         HashMap<String, Integer> funcNodePointerMapCopy = new HashMap<>(funcNodePointerMap);
@@ -912,7 +943,6 @@ public class Rewriter extends PythonBaseListener{
 
     }
 
-
     public void enterFor_stmt(PythonParser.For_stmtContext ctx) throws IOException {
 
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
@@ -924,7 +954,7 @@ public class Rewriter extends PythonBaseListener{
         }
         HashMap<String, Integer> forTempPointerMap = new HashMap<>(parentSuitePointerMap);
         setTempSSAPointerMap(ctx, forTempPointerMap);
-        //new phi obj
+        // new phi obj
         String phiLine = "phi" + phiHolder.size();
         phiHolder.push(phiLine);
         phiLine += " = Phi()";
@@ -936,6 +966,7 @@ public class Rewriter extends PythonBaseListener{
         out.write(forLine);
 
     }
+
     public void enterClassdef(PythonParser.ClassdefContext ctx) throws IOException {
 
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
@@ -964,16 +995,15 @@ public class Rewriter extends PythonBaseListener{
     }
 
     public void enterSuite(PythonParser.SuiteContext ctx) throws IOException {
-        //get snapshot from parent if OR while
+        // get snapshot from parent if OR while
         HashMap<String, Integer> pointerMap = getTempSSAPointerMap(ctx.getParent());
         setTempSSAPointerMap(ctx, new HashMap<>(pointerMap));
 
         HashMap<String, Integer> suitetempSSAPointerMap = getTempSSAPointerMap(ctx);
 
-
         tabCount++;
 
-        if (ctx.getParent() instanceof  PythonParser.FuncdefContext) {
+        if (ctx.getParent() instanceof PythonParser.FuncdefContext) {
             ParserRuleContext funcdefNode = ctx.getParent();
             HashMap<String, ArrayList<String>> funcDefMap = getNodeIdsMap(funcdefNode);
             ArrayList<String> collides = new ArrayList<>();
@@ -982,7 +1012,7 @@ public class Rewriter extends PythonBaseListener{
                     collides.add(ssa);
                 }
             }
-            String idInit ="";
+            String idInit = "";
             HashMap<String, ArrayList<String>> funcDefSuiteMap = getNodeIdsMap(ctx);
             for (String id : funcDefSuiteMap.keySet()) {
                 for (String ssa : funcDefSuiteMap.get(id)) {
@@ -1001,8 +1031,8 @@ public class Rewriter extends PythonBaseListener{
             out.write("\n");
         }
 
-        if (ctx.getParent() instanceof PythonParser.While_stmtContext ||
-                ctx.getParent() instanceof PythonParser.For_stmtContext) {
+        if (ctx.getParent() instanceof PythonParser.While_stmtContext
+                || ctx.getParent() instanceof PythonParser.For_stmtContext) {
             writeTabs();
             List<PythonParser.SuiteContext> suiteList = new ArrayList<>();
             if (ctx.getParent() instanceof PythonParser.While_stmtContext) {
@@ -1015,9 +1045,9 @@ public class Rewriter extends PythonBaseListener{
                 out.write(phiHolder.peek() + ".set()" + "\n");
             }
 
-            //out.write(phiHolder.peek() + ".set()" + "\n");
+            // out.write(phiHolder.peek() + ".set()" + "\n");
             HashMap<String, ArrayList<String>> suiteMap = getNodeIdsMap(ctx);
-            for (String id: suiteMap.keySet()) {
+            for (String id : suiteMap.keySet()) {
                 if (suiteMap.get(id).get(0).contains("phiEntry") && globalIdsMap.containsKey(id)) {
                     ArrayList<String> causalList = new ArrayList<>();
                     String phiIdLine = suiteMap.get(id).get(0);
@@ -1040,13 +1070,13 @@ public class Rewriter extends PythonBaseListener{
                     causalList.add(idInLoop);
                     causalList.addAll(getLoopRulePredNameMap(ctx.getParent()));
                     String phiEntryId = phiIdLine.substring(0, phiIdLine.indexOf('?'));
-                    phiIdLine = phiIdLine.substring(0, phiIdLine.indexOf('?')) + " = " + phiHolder.peek() + ".phiEntry(" +
-                            idBeforeLoop + phiIdLine.substring(phiIdLine.indexOf(','));
+                    phiIdLine = phiIdLine.substring(0, phiIdLine.indexOf('?')) + " = " + phiHolder.peek() + ".phiEntry("
+                            + idBeforeLoop + phiIdLine.substring(phiIdLine.indexOf(','));
                     causalMap.put(phiEntryId, causalList);
                     addedPhiNames.add(phiEntryId);
                     writeTabs();
                     out.write(phiIdLine + "\n");
-                    ssaPointerMap.put(id, ssaPointerMap.get(id)+1);
+                    ssaPointerMap.put(id, ssaPointerMap.get(id) + 1);
                     //
                     suitetempSSAPointerMap.put(id, ssaPointerMap.get(id));
 
@@ -1059,6 +1089,7 @@ public class Rewriter extends PythonBaseListener{
 
         setRuleTokens(ctx, new ArrayList<>());
     }
+
     public void exitRaise_stmt(PythonParser.Raise_stmtContext ctx) throws IOException {
         String raiseLine = "";
 
@@ -1076,8 +1107,8 @@ public class Rewriter extends PythonBaseListener{
 
             if (tokenTable[tokens.get(i).getType()].equals("NAME")) {
                 String id = tokens.get(i).getText();
-                if (globalIdsMap.containsKey(id) &&
-                        ((i == 0)|| (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
+                if (globalIdsMap.containsKey(id)
+                        && ((i == 0) || (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
 
                     String ssa;
                     if (firstSuiteParentPointerMap.get(id) == -1) {
@@ -1106,6 +1137,7 @@ public class Rewriter extends PythonBaseListener{
         out.write(raiseLine);
 
     }
+
     public void enterAssert_stmt(PythonParser.Assert_stmtContext ctx) throws IOException {
 
         setRuleTokens(ctx, new ArrayList<>());
@@ -1115,8 +1147,8 @@ public class Rewriter extends PythonBaseListener{
         String assertLine = "";
         ArrayList<Token> tokens = getRuleTokens(ctx);
         for (int i = 0; i < tokens.size(); i++) {
-            if (tokenTable[tokens.get(i).getType()].equals("NAME") &&
-                    ((i == 0)|| (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
+            if (tokenTable[tokens.get(i).getType()].equals("NAME")
+                    && ((i == 0) || (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
                 String id = tokens.get(i).getText();
                 if (globalIdsMap.containsKey(id)) {
                     System.out.println(id + "***");
@@ -1162,7 +1194,6 @@ public class Rewriter extends PythonBaseListener{
         out.write(assertLine);
     }
 
-
     public void enterReturn_stmt(PythonParser.Return_stmtContext ctx) throws IOException {
         setRuleTokens(ctx, new ArrayList<>());
 
@@ -1190,8 +1221,8 @@ public class Rewriter extends PythonBaseListener{
         ArrayList<Pair> comp_forRanges = new ArrayList<>();
         for (int j = 0; j < tokens.size(); j++) {
             if (tokenTable[tokens.get(j).getType()].equals("FOR")) {
-                //find parentheses surround for
-                addComp_forRange(tokens ,j, comp_forRanges);
+                // find parentheses surround for
+                addComp_forRange(tokens, j, comp_forRanges);
 
             }
         }
@@ -1199,14 +1230,14 @@ public class Rewriter extends PythonBaseListener{
         ArrayList<Pair> lambdaRanges = new ArrayList<>();
         for (int j = 0; j < tokens.size(); j++) {
             if (tokenTable[tokens.get(j).getType()].equals("LAMBDA")) {
-                //find parentheses surround for
-                addLambdaRange(tokens ,j, lambdaRanges);
+                // find parentheses surround for
+                addLambdaRange(tokens, j, lambdaRanges);
             }
         }
         ArrayList<ArrayList<String>> nodeLambdaNames = new ArrayList<>();
 
         for (int i = 0; i < tokens.size(); i++) {
-            //lambda
+            // lambda
             if (tokenTable[tokens.get(i).getType()].equals("LAMBDA")) {
                 ArrayList<String> namesAfterLambda = new ArrayList<>();
                 returnLine += " ";
@@ -1216,13 +1247,13 @@ public class Rewriter extends PythonBaseListener{
                     if (tokenTable[tokens.get(i + k).getType()].equals("NAME")) {
 
                         String id = tokens.get(i + k).getText();
-                        //lanmbda name needs to increment by 1
+                        // lanmbda name needs to increment by 1
                         if (!lambdaPointAddOneRecord.contains(id)) {
                             ssaPointerMap.put(id, ssaPointerMap.get(id) + 1);
                             lambdaPointAddOneRecord.add(id);
                         }
                         String ssa = globalIdsMap.get(id).get(ssaPointerMap.get(id));
-                        //should not contain "?"
+                        // should not contain "?"
                         firstSuiteParentPointerMap.put(id, ssaPointerMap.get(id));
                         namesAfterLambda.add(ssa);
                         returnLine += ssa;
@@ -1240,7 +1271,6 @@ public class Rewriter extends PythonBaseListener{
                 continue;
             }
 
-
             boolean isLambda = false;
             if (tokenTable[tokens.get(i).getType()].equals("NAME") && indexOfLambdaList(i, lambdaRanges) > -1) {
                 String id = tokens.get(i).getText();
@@ -1253,12 +1283,12 @@ public class Rewriter extends PythonBaseListener{
                 }
             }
 
+            // for
 
-            //for
-
-            //names in comp_for
+            // names in comp_for
             boolean isComp_forName = false;
-            if (!isLambda && tokenTable[tokens.get(i).getType()].equals("NAME") && indexOfComp_forList(i, comp_forRanges) != -1) {
+            if (!isLambda && tokenTable[tokens.get(i).getType()].equals("NAME")
+                    && indexOfComp_forList(i, comp_forRanges) != -1) {
                 ArrayList<String> comp_forList = nodeComp_forLists.get(indexOfComp_forList(i, comp_forRanges));
                 for (String ssa : comp_forList) {
                     String id = tokens.get(i).getText();
@@ -1275,11 +1305,10 @@ public class Rewriter extends PythonBaseListener{
                 continue;
             }
 
-
             if (!isLambda && tokenTable[tokens.get(i).getType()].equals("NAME")) {
                 String id = tokens.get(i).getText();
-                if (globalIdsMap.containsKey(id) &&
-                        ((i == 0)|| (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
+                if (globalIdsMap.containsKey(id)
+                        && ((i == 0) || (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
 
                     String ssa;
                     if (i + 2 < tokens.size() && i - 1 >= 0 && tokens.get(i + 1).getText().equals("=")
@@ -1352,17 +1381,16 @@ public class Rewriter extends PythonBaseListener{
     }
 
     public void exitWhile_stmt(PythonParser.While_stmtContext ctx) throws IOException {
-        //init merged pointer map as suite map
+        // init merged pointer map as suite map
         HashMap<String, Integer> whileNodePointerMap = getTempSSAPointerMap(ctx);
         HashMap<String, Integer> whileNodePointerMapCopy = new HashMap<>(whileNodePointerMap);
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
 
-        //HashMap<String, Integer> parentSuitePointerMap = getTempSSAPointerMap(firstSuiteParent);
-
+        // HashMap<String, Integer> parentSuitePointerMap =
+        // getTempSSAPointerMap(firstSuiteParent);
 
         HashMap<String, Integer> whileSuitePointerMap = new HashMap<>(getTempSSAPointerMap(ctx.suite(0)));
         updatePoninterMap(whileNodePointerMap, whileSuitePointerMap);
-
 
         HashMap<String, ArrayList<String>> whileNodeMap = getNodeIdsMap(ctx);
         for (String id : whileNodeMap.keySet()) {
@@ -1389,8 +1417,8 @@ public class Rewriter extends PythonBaseListener{
                 causalList.add(idInLoop);
                 causalList.addAll(getLoopRulePredNameMap(ctx));
                 String phiExitId = phiIdLine.substring(0, phiIdLine.indexOf('?'));
-                phiIdLine = phiExitId + " = " + phiHolder.peek() + ".phiExit(" +
-                        idBeforeLoop + phiIdLine.substring(phiIdLine.indexOf(','));
+                phiIdLine = phiExitId + " = " + phiHolder.peek() + ".phiExit(" + idBeforeLoop
+                        + phiIdLine.substring(phiIdLine.indexOf(','));
                 causalMap.put(phiExitId, causalList);
                 addedPhiNames.add(phiExitId);
                 writeTabs();
@@ -1414,16 +1442,16 @@ public class Rewriter extends PythonBaseListener{
 
     public void exitFor_stmt(PythonParser.For_stmtContext ctx) throws IOException {
 
-        //update for node pointer map with suite pointer map first
+        // update for node pointer map with suite pointer map first
         HashMap<String, Integer> forNodePointerMap = getTempSSAPointerMap(ctx);
         HashMap<String, Integer> forNodePointerMapCopy = new HashMap<>(forNodePointerMap);
-        HashMap<String,Integer> forSuitePointerMap = getTempSSAPointerMap(ctx.suite(0));
+        HashMap<String, Integer> forSuitePointerMap = getTempSSAPointerMap(ctx.suite(0));
         HashMap<String, Integer> forElseSuitePointerMap = getTempSSAPointerMap(ctx.suite(1));
         updatePoninterMap(forNodePointerMap, forSuitePointerMap);
 
         HashMap<String, ArrayList<String>> ForNodeMap = getNodeIdsMap(ctx);
         for (String id : ForNodeMap.keySet()) {
-            //then update with phi
+            // then update with phi
             ArrayList<String> causalList = new ArrayList<>();
             String lastSsa = ForNodeMap.get(id).get(ForNodeMap.get(id).size() - 1);
             if (lastSsa.contains("phiExit") && globalIdsMap.containsKey(id)) {
@@ -1432,7 +1460,8 @@ public class Rewriter extends PythonBaseListener{
                 if (forNodePointerMapCopy.get(id) >= 0) {
                     idBeforeLoop = globalIdsMap.get(id).get(forNodePointerMapCopy.get(id));
                 }
-                //String idBeforeLoop = globalIdsMap.get(id).get(forNodePointerMapCopy.get(id));
+                // String idBeforeLoop =
+                // globalIdsMap.get(id).get(forNodePointerMapCopy.get(id));
                 if (idBeforeLoop.contains("?")) {
                     idBeforeLoop = idBeforeLoop.substring(0, idBeforeLoop.indexOf('?'));
                 }
@@ -1447,8 +1476,8 @@ public class Rewriter extends PythonBaseListener{
                 causalList.add(idInLoop);
                 causalList.addAll(getLoopRulePredNameMap(ctx));
                 String phiExitId = phiIdLine.substring(0, phiIdLine.indexOf('?'));
-                phiIdLine = phiExitId + " = " + phiHolder.peek() + ".phiExit(" +
-                        idBeforeLoop + phiIdLine.substring(phiIdLine.indexOf(','));
+                phiIdLine = phiExitId + " = " + phiHolder.peek() + ".phiExit(" + idBeforeLoop
+                        + phiIdLine.substring(phiIdLine.indexOf(','));
                 causalMap.put(phiExitId, causalList);
                 addedPhiNames.add(phiExitId);
                 writeTabs();
@@ -1464,21 +1493,22 @@ public class Rewriter extends PythonBaseListener{
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
         HashMap<String, Integer> parentSuitePointerMap;
 
-        //don't new here
+        // don't new here
         if (firstSuiteParent == null) {
-            parentSuitePointerMap  = ssaPointerMap;
+            parentSuitePointerMap = ssaPointerMap;
         } else {
             parentSuitePointerMap = getTempSSAPointerMap(firstSuiteParent);
         }
         updatePoninterMap(parentSuitePointerMap, forNodePointerMap);
 
-
     }
+
     public void enterExcept_clause(PythonParser.Except_clauseContext ctx) {
         setRuleTokens(ctx, new ArrayList<>());
     }
+
     public void exitExcept_clause(PythonParser.Except_clauseContext ctx) throws IOException {
-        //snap shot
+        // snap shot
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
         HashMap<String, Integer> firstSuiteParentPointerMap;
         if (firstSuiteParent == null) {
@@ -1520,16 +1550,14 @@ public class Rewriter extends PythonBaseListener{
         out.write(exceptStr);
     }
 
-
-
-
-    //write test in if
-    //don't miss semicolon followed
+    // write test in if
+    // don't miss semicolon followed
     public void enterTest(PythonParser.TestContext ctx) {
         setRuleTokens(ctx, new ArrayList<>());
     }
+
     public void exitTest(PythonParser.TestContext ctx) throws IOException {
-        //snap shot
+        // snap shot
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
         HashMap<String, Integer> firstSuiteParentPointerMap;
         ArrayList<ArrayList<String>> nodeComp_forLists = getNodeComp_forLists(ctx);
@@ -1539,21 +1567,21 @@ public class Rewriter extends PythonBaseListener{
             firstSuiteParentPointerMap = getTempSSAPointerMap(firstSuiteParent);
         }
 
-        if (ctx.getParent() instanceof PythonParser.If_stmtContext )  {
+        if (ctx.getParent() instanceof PythonParser.If_stmtContext) {
             String testStr = "";
             ArrayList<Token> tokens = getRuleTokens(ctx);
             Set<String> ifPredNames = new HashSet<>();
             ArrayList<Pair> comp_forRanges = new ArrayList<>();
             for (int j = 0; j < tokens.size(); j++) {
                 if (tokenTable[tokens.get(j).getType()].equals("FOR")) {
-                    //find parentheses surround for
-                    addComp_forRange(tokens ,j, comp_forRanges);
+                    // find parentheses surround for
+                    addComp_forRange(tokens, j, comp_forRanges);
 
                 }
             }
-            for (int i = 0; i< tokens.size(); i++) {
-                if (tokenTable[tokens.get(i).getType()].equals("NAME") &&
-                        ((i == 0)|| (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
+            for (int i = 0; i < tokens.size(); i++) {
+                if (tokenTable[tokens.get(i).getType()].equals("NAME")
+                        && ((i == 0) || (i > 0 && !tokenTable[tokens.get(i - 1).getType()].equals("DOT")))) {
                     String id = tokens.get(i).getText();
 
                     boolean isComp_forName = false;
@@ -1575,13 +1603,12 @@ public class Rewriter extends PythonBaseListener{
                     if (globalIdsMap.containsKey(id)) {
                         String ssa;
                         if (i + 2 < tokens.size() && i - 1 >= 0 && tokens.get(i + 1).getText().equals("=")
-                                && isBasicAtomType(tokens, i + 2)
-                                && (tokens.get(i - 1).getText().equals(",") || tokens.get(i - 1).getText().equals("("))) {
+                                && isBasicAtomType(tokens, i + 2) && (tokens.get(i - 1).getText().equals(",")
+                                        || tokens.get(i - 1).getText().equals("("))) {
                             ssa = tokens.get(i).getText();
                         } else {
                             ssa = globalIdsMap.get(id).get(firstSuiteParentPointerMap.get(id));
                         }
-
 
                         if (ssa.contains("?")) {
                             ssa = ssa.substring(0, ssa.indexOf('?'));
@@ -1629,8 +1656,8 @@ public class Rewriter extends PythonBaseListener{
 
             String testStr = "";
             Set<String> loopPredNames = new HashSet<>();
-            PythonParser.While_stmtContext whileNode = (PythonParser.While_stmtContext)ctx.getParent();
-            HashMap<String, Integer>whileTempPointerMap = getTempSSAPointerMap(whileNode);
+            PythonParser.While_stmtContext whileNode = (PythonParser.While_stmtContext) ctx.getParent();
+            HashMap<String, Integer> whileTempPointerMap = getTempSSAPointerMap(whileNode);
             HashMap<String, ArrayList<String>> whileSuiteMap = getNodeIdsMap(whileNode.suite(0));
             ParserRuleContext whileTestNode = whileNode.test();
             ArrayList<Token> whileTestTokens = getRuleTokens(whileTestNode);
@@ -1638,8 +1665,8 @@ public class Rewriter extends PythonBaseListener{
             ArrayList<Pair> comp_forRanges = new ArrayList<>();
             for (int i = 0; i < whileTestTokens.size(); i++) {
                 if (tokenTable[whileTestTokens.get(i).getType()].equals("FOR")) {
-                    //find parentheses surround for
-                    addComp_forRange(whileTestTokens ,i, comp_forRanges);
+                    // find parentheses surround for
+                    addComp_forRange(whileTestTokens, i, comp_forRanges);
                 }
             }
 
@@ -1650,7 +1677,8 @@ public class Rewriter extends PythonBaseListener{
                     boolean isComp_forName = false;
                     if (indexOfComp_forList(i, comp_forRanges) != -1) {
 
-                        //ArrayList<String> comp_forList = nodeComp_forLists.get(indexOfComp_forList(j, comp_forRanges));
+                        // ArrayList<String> comp_forList = nodeComp_forLists.get(indexOfComp_forList(j,
+                        // comp_forRanges));
                         ArrayList<String> comp_forList = getAllQualifiedComp_fors(i, comp_forRanges, nodeComp_forLists);
                         for (String ssa : comp_forList) {
                             if (whileTestTokens.get(i).getText().equals(ssa.substring(0, ssa.lastIndexOf('_')))) {
@@ -1667,7 +1695,8 @@ public class Rewriter extends PythonBaseListener{
 
                     if (globalIdsMap.containsKey(oldName)) {
                         String newName;
-                        if (oldName.equals("self") || i > 0 && tokenTable[whileTestTokens.get(i - 1).getType()].equals("DOT")) {
+                        if (oldName.equals("self")
+                                || i > 0 && tokenTable[whileTestTokens.get(i - 1).getType()].equals("DOT")) {
                             testStr += oldName;
                             continue;
                         }
@@ -1680,7 +1709,8 @@ public class Rewriter extends PythonBaseListener{
                         } else {
 
                             String phiIdLine = whileSuiteMap.get(oldName).get(0);
-                            String idInLoop = phiIdLine.substring(phiIdLine.indexOf(',') + 1, phiIdLine.lastIndexOf(')'));
+                            String idInLoop = phiIdLine.substring(phiIdLine.indexOf(',') + 1,
+                                    phiIdLine.lastIndexOf(')'));
 
                             String idBeforeLoop = "None";
                             if (whileTempPointerMap.get(oldName) >= 0) {
@@ -1697,67 +1727,68 @@ public class Rewriter extends PythonBaseListener{
                                 loopPredNames.add(idBeforeLoop);
                             }
                             loopPredNames.add(idInLoop);
-                            newName = "phiLoopTest(" + idBeforeLoop + "," +idInLoop + ")";
+                            newName = "phiLoopTest(" + idBeforeLoop + "," + idInLoop + ")";
                             newName = phiHolder.peek() + "." + newName;
 
-
-
-//                            newName = whileSuiteMap.get(oldName).get(0);
-//
-//                            newName = newName.substring(newName.indexOf('?') + 1);
-//                            if (newName.contains("?")) {
-//                                newName = newName.substring(0, newName.indexOf('?'));
-//                                newName += ")";
-//                            }
-//                            newName = phiHolder.peek() + "." + newName;
+                            // newName = whileSuiteMap.get(oldName).get(0);
+                            //
+                            // newName = newName.substring(newName.indexOf('?') + 1);
+                            // if (newName.contains("?")) {
+                            // newName = newName.substring(0, newName.indexOf('?'));
+                            // newName += ")";
+                            // }
+                            // newName = phiHolder.peek() + "." + newName;
                         }
                         testStr += newName;
                         continue;
                     }
-//                    //--------
-//                    if (suiteList.indexOf(ctx) != 1) {
-//                        out.write(phiHolder.peek() + ".set()" + "\n");
-//                    }
-//
-//                    for (String id: suiteMap.keySet()) {
-//                        if (suiteMap.get(id).get(0).contains("phiEntry") && globalIdsMap.containsKey(id)) {
-//                            ArrayList<String> causalList = new ArrayList<>();
-//                            String phiIdLine = suiteMap.get(id).get(0);
-//                            String idBeforeLoop = "None";
-//                            if (suitetempSSAPointerMap.get(id) >= 0) {
-//                                idBeforeLoop = globalIdsMap.get(id).get(suitetempSSAPointerMap.get(id));
-//                            }
-//
-//                            if (!idBeforeLoop.equals("None") && !isInScope(ctx, idBeforeLoop)) {
-//                                idBeforeLoop = "None";
-//                            }
-//                            if (idBeforeLoop.contains("?")) {
-//                                idBeforeLoop = idBeforeLoop.substring(0, idBeforeLoop.indexOf('?'));
-//                            }
-//                            if (!idBeforeLoop.equals("None")) {
-//                                causalList.add(idBeforeLoop);
-//                            }
-//
-//                            String idInLoop = phiIdLine.substring(phiIdLine.indexOf(',') + 1, phiIdLine.lastIndexOf(')'));
-//                            causalList.add(idInLoop);
-//                            causalList.addAll(getLoopRulePredNameMap(ctx.getParent()));
-//                            String phiEntryId = phiIdLine.substring(0, phiIdLine.indexOf('?'));
-//                            phiIdLine = phiIdLine.substring(0, phiIdLine.indexOf('?')) + " = " + phiHolder.peek() + ".phiEntry(" +
-//                                    idBeforeLoop + phiIdLine.substring(phiIdLine.indexOf(','));
-//                            causalMap.put(phiEntryId, causalList);
-//                            addedPhiNames.add(phiEntryId);
-//                            writeTabs();
-//                            out.write(phiIdLine + "\n");
-//                            ssaPointerMap.put(id, ssaPointerMap.get(id)+1);
-//                            //
-//                            suitetempSSAPointerMap.put(id, ssaPointerMap.get(id));
-//
-//                        }
-//                    }
-//
-//
-//
-//                    //---------
+                    // //--------
+                    // if (suiteList.indexOf(ctx) != 1) {
+                    // out.write(phiHolder.peek() + ".set()" + "\n");
+                    // }
+                    //
+                    // for (String id: suiteMap.keySet()) {
+                    // if (suiteMap.get(id).get(0).contains("phiEntry") &&
+                    // globalIdsMap.containsKey(id)) {
+                    // ArrayList<String> causalList = new ArrayList<>();
+                    // String phiIdLine = suiteMap.get(id).get(0);
+                    // String idBeforeLoop = "None";
+                    // if (suitetempSSAPointerMap.get(id) >= 0) {
+                    // idBeforeLoop = globalIdsMap.get(id).get(suitetempSSAPointerMap.get(id));
+                    // }
+                    //
+                    // if (!idBeforeLoop.equals("None") && !isInScope(ctx, idBeforeLoop)) {
+                    // idBeforeLoop = "None";
+                    // }
+                    // if (idBeforeLoop.contains("?")) {
+                    // idBeforeLoop = idBeforeLoop.substring(0, idBeforeLoop.indexOf('?'));
+                    // }
+                    // if (!idBeforeLoop.equals("None")) {
+                    // causalList.add(idBeforeLoop);
+                    // }
+                    //
+                    // String idInLoop = phiIdLine.substring(phiIdLine.indexOf(',') + 1,
+                    // phiIdLine.lastIndexOf(')'));
+                    // causalList.add(idInLoop);
+                    // causalList.addAll(getLoopRulePredNameMap(ctx.getParent()));
+                    // String phiEntryId = phiIdLine.substring(0, phiIdLine.indexOf('?'));
+                    // phiIdLine = phiIdLine.substring(0, phiIdLine.indexOf('?')) + " = " +
+                    // phiHolder.peek() + ".phiEntry(" +
+                    // idBeforeLoop + phiIdLine.substring(phiIdLine.indexOf(','));
+                    // causalMap.put(phiEntryId, causalList);
+                    // addedPhiNames.add(phiEntryId);
+                    // writeTabs();
+                    // out.write(phiIdLine + "\n");
+                    // ssaPointerMap.put(id, ssaPointerMap.get(id)+1);
+                    // //
+                    // suitetempSSAPointerMap.put(id, ssaPointerMap.get(id));
+                    //
+                    // }
+                    // }
+                    //
+                    //
+                    //
+                    // //---------
                 }
 
                 if (whileTestTokens.get(i).getText().equals("not")) {
@@ -1797,6 +1828,7 @@ public class Rewriter extends PythonBaseListener{
             out.write("\n");
         }
     }
+
     private ParserRuleContext findFirstSuiteParent(ParserRuleContext ctx) {
         ctx = ctx.getParent();
         while (ctx != null) {
@@ -1807,7 +1839,6 @@ public class Rewriter extends PythonBaseListener{
         }
         return null;
     }
-
 
     public void enterIf_stmt(PythonParser.If_stmtContext ctx) throws IOException {
 
@@ -1821,18 +1852,19 @@ public class Rewriter extends PythonBaseListener{
         setTempSSAPointerMap(ctx, new HashMap<>(pointerMap));
 
     }
+
     private String findLastIdSSA(String id, ParserRuleContext ctx) {
         ctx = ctx.getParent();
         while (ctx != null) {
-            if (ctx.getClass().getSimpleName().contains("Prog") || ctx.getClass().getSimpleName().contains("Suite") ||
-                    ctx instanceof PythonParser.If_stmtContext || ctx instanceof PythonParser.Try_stmtContext) {
+            if (ctx.getClass().getSimpleName().contains("Prog") || ctx.getClass().getSimpleName().contains("Suite")
+                    || ctx instanceof PythonParser.If_stmtContext || ctx instanceof PythonParser.Try_stmtContext) {
                 HashMap<String, ArrayList<String>> nodeMap = getNodeIdsMap(ctx);
                 if (nodeMap.containsKey(id)) {
                     ArrayList<String> ssaList = nodeMap.get(id);
                     return ssaList.get(ssaList.size() - 1);
                 } else {
-                    if (ctx instanceof PythonParser.SuiteContext &&
-                            ctx.getParent() instanceof PythonParser.If_stmtContext) {
+                    if (ctx instanceof PythonParser.SuiteContext
+                            && ctx.getParent() instanceof PythonParser.If_stmtContext) {
                         ctx = ctx.getParent();
 
                     }
@@ -1845,9 +1877,8 @@ public class Rewriter extends PythonBaseListener{
 
     public void exitIf_stmt(PythonParser.If_stmtContext ctx) throws IOException {
 
-
         HashMap<String, ArrayList<String>> ifNodeMap = getNodeIdsMap(ctx);
-        //merge if pointer map to parent suite
+        // merge if pointer map to parent suite
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
         HashMap<String, Integer> parentSuitePointerMap;
         if (firstSuiteParent != null) {
@@ -1857,7 +1888,7 @@ public class Rewriter extends PythonBaseListener{
         }
         HashMap<String, Integer> mergedIfTempPointerMap = new HashMap<>();
         ArrayList<HashMap<String, Integer>> ifSuiteMaps = new ArrayList<>();
-        for (ParserRuleContext suiteNode:ctx.suite()) {
+        for (ParserRuleContext suiteNode : ctx.suite()) {
             ifSuiteMaps.add(getTempSSAPointerMap(suiteNode));
         }
         for (HashMap<String, Integer> ifSuiteMap : ifSuiteMaps) {
@@ -1865,21 +1896,21 @@ public class Rewriter extends PythonBaseListener{
         }
         updatePoninterMap(parentSuitePointerMap, mergedIfTempPointerMap);
 
-        //generate if phi
+        // generate if phi
         int preHolderPointer = predHolder.size() - 1;
         for (String id : ifNodeMap.keySet()) {
 
             if (ifNodeMap.get(id).get(ifNodeMap.get(id).size() - 1).contains("phiIf") && globalIdsMap.containsKey(id)) {
                 ArrayList<String> causalList = new ArrayList<>();
                 preHolderPointer = predHolder.size() - 1;
-                //update merged pointer map
+                // update merged pointer map
 
-                //for (String ssa : ifNodeMap.get(id)) {
+                // for (String ssa : ifNodeMap.get(id)) {
                 String ssa = ifNodeMap.get(id).get(ifNodeMap.get(id).size() - 1);
 
                 String rightPart = ssa.substring(ssa.indexOf('?') + 1);
                 String paramPart = (rightPart.substring(rightPart.indexOf('(') + 1, rightPart.lastIndexOf(')')));
-                //split(",(?![^()]*\\))");
+                // split(",(?![^()]*\\))");
 
                 ArrayList<String> paramPartList = new ArrayList<>();
                 for (int i = 0; i < paramPart.length(); i++) {
@@ -1920,14 +1951,14 @@ public class Rewriter extends PythonBaseListener{
                 String preds = "";
                 String names = "phiNames = [";
                 Set<String> predNamesSet = new HashSet<>();
-                //trying to resolve the problem of phi entry injection
+                // trying to resolve the problem of phi entry injection
                 for (int i = 0; i < paramPartList.size(); i++) {
                     if (i % 2 == 1 || i == paramPartList.size() - 1) {
                         String name = paramPartList.get(i);
 
                         if (i == paramPartList.size() - 1 && ctx.suite().size() == ctx.test().size()) {
 
-                            //temp fix!!
+                            // temp fix!!
 
                             if (getTempSSAPointerMap(firstSuiteParent).get(id) == -1) {
                                 name = "None";
@@ -1941,7 +1972,7 @@ public class Rewriter extends PythonBaseListener{
 
                             if (!getNodeIdsMap(ctx.suite().get(i / 2)).containsKey(id)) {
                                 System.out.println(id);
-                                //temp fix!!
+                                // temp fix!!
                                 if (getTempSSAPointerMap(firstSuiteParent).get(id) == -1) {
                                     name = "None";
                                 } else {
@@ -1953,7 +1984,7 @@ public class Rewriter extends PythonBaseListener{
                             }
 
                         }
-                        //}
+                        // }
                         if (name.contains("?")) {
                             name = name.substring(0, name.indexOf('?'));
                         }
@@ -1988,7 +2019,7 @@ public class Rewriter extends PythonBaseListener{
                 writeTabs();
                 out.write(phiLine);
                 out.write("\n");
-                //ssaPointerMap.put(id, globalIdsMap.get(id).indexOf(ssa));
+                // ssaPointerMap.put(id, globalIdsMap.get(id).indexOf(ssa));
                 ssaPointerMap.put(id, ssaPointerMap.get(id) + 1);
 
                 getTempSSAPointerMap(firstSuiteParent).put(id, ssaPointerMap.get(id));
@@ -2001,7 +2032,8 @@ public class Rewriter extends PythonBaseListener{
         }
     }
 
-    private void updatePoninterMap(HashMap<String, Integer> mergedIfTempPointerMap, HashMap<String, Integer> ifSuiteMap) {
+    private void updatePoninterMap(HashMap<String, Integer> mergedIfTempPointerMap,
+            HashMap<String, Integer> ifSuiteMap) {
         for (Map.Entry<String, Integer> entry : ifSuiteMap.entrySet()) {
             if (!mergedIfTempPointerMap.containsKey(entry.getKey())) {
                 mergedIfTempPointerMap.put(entry.getKey(), entry.getValue());
@@ -2011,7 +2043,6 @@ public class Rewriter extends PythonBaseListener{
             }
         }
     }
-
 
     public void enterTry_stmt(PythonParser.Try_stmtContext ctx) {
 
@@ -2026,6 +2057,7 @@ public class Rewriter extends PythonBaseListener{
         setTempSSAPointerMap(ctx, tryTempPointerMap);
 
     }
+
     public void exitTry_stmt(PythonParser.Try_stmtContext ctx) {
 
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
@@ -2039,13 +2071,13 @@ public class Rewriter extends PythonBaseListener{
 
         HashMap<String, Integer> mergedTryTempPointerMap = new HashMap<>();
         ArrayList<HashMap<String, Integer>> trySuiteMaps = new ArrayList<>();
-        for (ParserRuleContext suiteNode:ctx.suite()) {
+        for (ParserRuleContext suiteNode : ctx.suite()) {
             trySuiteMaps.add(getTempSSAPointerMap(suiteNode));
         }
         for (HashMap<String, Integer> trySuiteMap : trySuiteMaps) {
             for (Map.Entry<String, Integer> entry : trySuiteMap.entrySet()) {
                 System.out.println("printing out try write up..");
-                System.out.println(entry.getKey() + " + "+ entry.getValue());
+                System.out.println(entry.getKey() + " + " + entry.getValue());
                 if (!mergedTryTempPointerMap.containsKey(entry.getKey())) {
                     mergedTryTempPointerMap.put(entry.getKey(), -1);
                 }
@@ -2078,6 +2110,7 @@ public class Rewriter extends PythonBaseListener{
     public void enterYield_expr(PythonParser.Yield_exprContext ctx) {
         setRuleTokens(ctx, new ArrayList<>());
     }
+
     public void exitYield_expr(PythonParser.Yield_exprContext ctx) throws IOException {
         String yieldLine = "";
         ArrayList<Token> tokens = getRuleTokens(ctx);
@@ -2106,12 +2139,13 @@ public class Rewriter extends PythonBaseListener{
         }
         out.write(yieldLine);
     }
+
     public void enterExprlist(PythonParser.ExprlistContext ctx) {
         setRuleTokens(ctx, new ArrayList<>());
     }
 
     public void exitExprlist(PythonParser.ExprlistContext ctx) throws IOException {
-        if (ctx.getParent() instanceof  PythonParser.For_stmtContext) {
+        if (ctx.getParent() instanceof PythonParser.For_stmtContext) {
             HashMap<String, Integer> forNodePointerMap = getTempSSAPointerMap(ctx.getParent());
             ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
             HashMap<String, Integer> parentSuitePointerMap;
@@ -2125,8 +2159,8 @@ public class Rewriter extends PythonBaseListener{
             String exprList = "";
             ArrayList<Token> exprlistTokens = getRuleTokens(ctx);
             for (int i = 0; i < exprlistTokens.size(); i++) {
-                if (tokenTable[exprlistTokens.get(i).getType()].equals("NAME") &&
-                        ((i == 0) || (i > 0 && !tokenTable[exprlistTokens.get(i - 1).getType()].equals("DOT")))) {
+                if (tokenTable[exprlistTokens.get(i).getType()].equals("NAME")
+                        && ((i == 0) || (i > 0 && !tokenTable[exprlistTokens.get(i - 1).getType()].equals("DOT")))) {
                     String id = exprlistTokens.get(i).getText();
                     if (globalIdsMap.containsKey(id)) {
                         System.out.println("--------" + id + " " + ssaPointerMap.get(id));
@@ -2152,14 +2186,15 @@ public class Rewriter extends PythonBaseListener{
 
     public void enterDel_stmt(PythonParser.Del_stmtContext ctx) {
     }
+
     public void exitDel_stmt(PythonParser.Del_stmtContext ctx) throws IOException {
         ParserRuleContext firstSuiteParent = findFirstSuiteParent(ctx);
         HashMap<String, Integer> parentSuitePointerMap = getTempSSAPointerMap(firstSuiteParent);
         String delLine = "del ";
         ArrayList<Token> exprlistTokens = getRuleTokens(ctx.exprlist());
-        for (int i = 0; i< exprlistTokens.size(); i++) {
-            if (tokenTable[exprlistTokens.get(i).getType()].equals("NAME") &&
-                    ((i == 0)|| (i > 0 && !tokenTable[exprlistTokens.get(i - 1).getType()].equals("DOT")))) {
+        for (int i = 0; i < exprlistTokens.size(); i++) {
+            if (tokenTable[exprlistTokens.get(i).getType()].equals("NAME")
+                    && ((i == 0) || (i > 0 && !tokenTable[exprlistTokens.get(i - 1).getType()].equals("DOT")))) {
                 String id = exprlistTokens.get(i).getText();
                 if (globalIdsMap.containsKey(id)) {
                     String ssa = globalIdsMap.get(id).get(parentSuitePointerMap.get(id));
@@ -2182,7 +2217,7 @@ public class Rewriter extends PythonBaseListener{
         out.write("from phi import *\n");
     }
 
-    //to do : null all ssa that are append with phi
+    // to do : null all ssa that are append with phi
     public void exitProg(PythonParser.ProgContext ctx) throws IOException {
         out.write("\n");
         out.write("\n");
@@ -2199,11 +2234,10 @@ public class Rewriter extends PythonBaseListener{
                 parentList = parentList.substring(0, parentList.length() - 1);
             }
             parentList += "]";
-            causalLine += (  "'"+key+"'"   + ":" + parentList + "," );
+            causalLine += ("'" + key + "'" + ":" + parentList + ",");
         }
-        causalLine+= "}";
+        causalLine += "}";
         out.write(causalLine);
-
 
         out.write("\n");
         out.write("\n");
@@ -2216,20 +2250,20 @@ public class Rewriter extends PythonBaseListener{
         phiNamesLine += "}";
         out.write(phiNamesLine);
 
-
         out.close();
     }
+
     public void visitTerminal(TerminalNode node) {
-        //newline
+        // newline
         if (node.getSymbol().getText().equals("if") && !(node.getParent() instanceof PythonParser.TestContext)
-                && !(node.getParent() instanceof PythonParser.Comp_ifContext)){
+                && !(node.getParent() instanceof PythonParser.Comp_ifContext)) {
             try {
                 out.write("if ");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        if (node.getSymbol().getText().equals("elif")){
+        if (node.getSymbol().getText().equals("elif")) {
             try {
                 writeTabs();
                 out.write("elif ");
@@ -2237,7 +2271,7 @@ public class Rewriter extends PythonBaseListener{
                 e.printStackTrace();
             }
         }
-        if (node.getSymbol().getText().equals("else") && !(node.getParent() instanceof PythonParser.TestContext)){
+        if (node.getSymbol().getText().equals("else") && !(node.getParent() instanceof PythonParser.TestContext)) {
             try {
                 writeTabs();
                 out.write("else:");
@@ -2246,7 +2280,7 @@ public class Rewriter extends PythonBaseListener{
                 e.printStackTrace();
             }
         }
-        if (node.getSymbol().getText().equals("try")){
+        if (node.getSymbol().getText().equals("try")) {
             try {
                 out.write("try:");
 
@@ -2254,7 +2288,7 @@ public class Rewriter extends PythonBaseListener{
                 e.printStackTrace();
             }
         }
-        if (node.getSymbol().getText().equals("continue")){
+        if (node.getSymbol().getText().equals("continue")) {
             try {
                 out.write("continue");
 
@@ -2262,7 +2296,7 @@ public class Rewriter extends PythonBaseListener{
                 e.printStackTrace();
             }
         }
-        if (node.getSymbol().getText().equals("break")){
+        if (node.getSymbol().getText().equals("break")) {
             try {
                 out.write("break");
 
@@ -2271,7 +2305,7 @@ public class Rewriter extends PythonBaseListener{
             }
         }
 
-        if (node.getSymbol().getText().equals("finally")){
+        if (node.getSymbol().getText().equals("finally")) {
             try {
                 writeTabs();
                 out.write("finally:");
@@ -2280,7 +2314,7 @@ public class Rewriter extends PythonBaseListener{
                 e.printStackTrace();
             }
         }
-        if (node.getSymbol().getText().equals("pass")){
+        if (node.getSymbol().getText().equals("pass")) {
             try {
                 out.write("pass");
 
@@ -2289,9 +2323,7 @@ public class Rewriter extends PythonBaseListener{
             }
         }
 
-
-        if (node.getSymbol().getType() == 39)
-        {
+        if (node.getSymbol().getType() == 39) {
             try {
                 out.write("\n");
             } catch (IOException e) {
@@ -2299,13 +2331,12 @@ public class Rewriter extends PythonBaseListener{
             }
         }
 
-
         writeTokenUp(node.getSymbol(), node);
     }
 
-    //    public void enterAtom
-    //trying write token up
-//
+    // public void enterAtom
+    // trying write token up
+    //
     private boolean isInScope(ParserRuleContext ctx, String ssa) {
         ParserRuleContext firstFuncSuiteParent = findFirstFuncSuiteParent(ctx);
         HashMap<String, ArrayList<String>> nodeMap = getNodeIdsMap(firstFuncSuiteParent);
@@ -2317,18 +2348,20 @@ public class Rewriter extends PythonBaseListener{
         return nodeMap.get(id).contains(ssa);
 
     }
+
     private ParserRuleContext findFirstFuncSuiteParent(ParserRuleContext ctx) {
         ctx = ctx.getParent();
         while (ctx != null) {
-            if (ctx instanceof PythonParser.SuiteContext && ctx.getParent() instanceof  PythonParser.FuncdefContext) {
+            if (ctx instanceof PythonParser.SuiteContext && ctx.getParent() instanceof PythonParser.FuncdefContext) {
                 return ctx;
             }
             ctx = ctx.getParent();
         }
         return null;
     }
+
     private ParserRuleContext findFirstSmallStmtNode(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.Small_stmtContext) {
                 return ctx;
@@ -2337,8 +2370,9 @@ public class Rewriter extends PythonBaseListener{
         }
         return null;
     }
+
     private ParserRuleContext findFirstSmallStmtNode(ParserRuleContext ctx) {
-        ParserRuleContext node  =ctx;
+        ParserRuleContext node = ctx;
         while (node != null) {
             if (node instanceof PythonParser.Small_stmtContext) {
                 return node;
@@ -2347,8 +2381,9 @@ public class Rewriter extends PythonBaseListener{
         }
         return null;
     }
+
     private ParserRuleContext findTestListStarExprNode(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.Testlist_star_exprContext) {
                 return ctx;
@@ -2357,6 +2392,7 @@ public class Rewriter extends PythonBaseListener{
         }
         return null;
     }
+
     private void writeTokenUp(Token token, TerminalNode node) {
         ParserRuleContext firstSmallStmtParent = findFirstSmallStmtNode(node);
         ArrayList<Token> firstSmallStmtParentTokens = getRuleTokens(firstSmallStmtParent);
@@ -2370,7 +2406,6 @@ public class Rewriter extends PythonBaseListener{
         ParserRuleContext firstTestListParent = findFirstTestListParent(node);
         ArrayList<Token> firstTestListTokens = getRuleTokens(firstTestListParent);
 
-
         ParserRuleContext firstAssertParent = findFirstAssertParent(node);
         ArrayList<Token> firstAssertParentTokens = getRuleTokens(firstAssertParent);
 
@@ -2383,7 +2418,6 @@ public class Rewriter extends PythonBaseListener{
         ParserRuleContext firstIfOrWhileTestParent = findFirstIfOrWhileTestParent(node);
         ArrayList<Token> firstIfOrWhileTestParentTokens = getRuleTokens(firstIfOrWhileTestParent);
 
-
         ParserRuleContext firstExprTestlistParent = findFirstExprTestlistParent(node);
         ArrayList<Token> firstExprTestlistParentTokens = getRuleTokens(firstExprTestlistParent);
 
@@ -2395,9 +2429,6 @@ public class Rewriter extends PythonBaseListener{
 
         ParserRuleContext firstExprlistParent = findFirstExprlistParent(node);
         ArrayList<Token> firstExprlistParentTokens = getRuleTokens(firstExprlistParent);
-
-
-
 
         if (firstAssertParent != null) {
             firstAssertParentTokens.add(token);
@@ -2437,7 +2468,7 @@ public class Rewriter extends PythonBaseListener{
             return;
         }
 
-        //don't return yet, for the case "for..in.." in an assign stmt
+        // don't return yet, for the case "for..in.." in an assign stmt
         if (firstExprlistParent != null) {
             firstExprlistParentTokens.add(token);
 
@@ -2445,7 +2476,6 @@ public class Rewriter extends PythonBaseListener{
         if (firstSmallStmtParent != null) {
             firstSmallStmtParentTokens.add(token);
         }
-
 
         if (firstTestListParent != null) {
             firstTestListTokens.add(token);
@@ -2458,7 +2488,7 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private ParserRuleContext findFirstExprlistParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.ExprlistContext) {
                 return ctx;
@@ -2469,7 +2499,7 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private ParserRuleContext findFirstTestListParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.TestlistContext) {
                 return ctx;
@@ -2479,9 +2509,8 @@ public class Rewriter extends PythonBaseListener{
         return null;
     }
 
-
     private ParserRuleContext findFirstYieldParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.Yield_exprContext) {
                 return ctx;
@@ -2491,9 +2520,8 @@ public class Rewriter extends PythonBaseListener{
         return null;
     }
 
-
     private ParserRuleContext findFirstAssertParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.Assert_stmtContext) {
                 return ctx;
@@ -2502,8 +2530,9 @@ public class Rewriter extends PythonBaseListener{
         }
         return null;
     }
+
     private ParserRuleContext findFirstReturnParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.Return_stmtContext) {
                 return ctx;
@@ -2512,8 +2541,9 @@ public class Rewriter extends PythonBaseListener{
         }
         return null;
     }
+
     private ParserRuleContext findFirstRaiseParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.Raise_stmtContext) {
                 return ctx;
@@ -2524,7 +2554,7 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private ParserRuleContext findFirstParamParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null) {
             if (ctx instanceof PythonParser.ParametersContext) {
                 return ctx;
@@ -2535,10 +2565,11 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private ParserRuleContext findFirstIfOrWhileTestParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null && ctx.getParent() != null) {
-            if ((ctx instanceof PythonParser.TestContext && ctx.getParent() instanceof PythonParser.If_stmtContext) ||
-                    (ctx instanceof PythonParser.TestContext && ctx.getParent() instanceof PythonParser.While_stmtContext)){
+            if ((ctx instanceof PythonParser.TestContext && ctx.getParent() instanceof PythonParser.If_stmtContext)
+                    || (ctx instanceof PythonParser.TestContext
+                            && ctx.getParent() instanceof PythonParser.While_stmtContext)) {
                 return ctx;
             }
             ctx = ctx.getParent();
@@ -2547,8 +2578,8 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private ParserRuleContext findFirstExceptParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
-        while (ctx != null ) {
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
+        while (ctx != null) {
             if (ctx instanceof PythonParser.Except_clauseContext) {
                 return ctx;
             }
@@ -2558,9 +2589,10 @@ public class Rewriter extends PythonBaseListener{
     }
 
     private ParserRuleContext findFirstExprTestlistParent(TerminalNode node) {
-        ParserRuleContext ctx = (ParserRuleContext)node.getParent();
+        ParserRuleContext ctx = (ParserRuleContext) node.getParent();
         while (ctx != null && ctx.getParent() != null) {
-            if (ctx instanceof PythonParser.TestlistContext && ctx.getParent() instanceof PythonParser.Expr_stmtContext) {
+            if (ctx instanceof PythonParser.TestlistContext
+                    && ctx.getParent() instanceof PythonParser.Expr_stmtContext) {
                 return ctx;
             }
             ctx = ctx.getParent();
